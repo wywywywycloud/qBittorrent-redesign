@@ -18,7 +18,8 @@ with tempfile.TemporaryDirectory(prefix="qbt-gui-") as tmp:
     salt = os.urandom(16)
     digest = hashlib.pbkdf2_hmac("sha512", os.urandom(20), salt, 100000)
     password = ":".join(base64.b64encode(piece).decode() for piece in (salt, digest))
-    config = profile / "qBittorrent/config/qBittorrent.conf"
+    suffix = ".ini" if sys.platform == "darwin" else ".conf"
+    config = profile / "qBittorrent" / "config" / ("qBittorrent" + suffix)
     config.parent.mkdir(parents=True)
     config.write_text(f"[WebUI]\nEnabled=true\nAddress=127.0.0.1\nPort={port}\nLocalHostAuth=false\nPassword_PBKDF2={password}\n[BitTorrent]\nSession\\DHTEnabled=false\nSession\\LSDEnabled=false\n[Network]\nPortForwardingEnabled=false\n[Preferences]\nAdvanced\\updateCheck=false\n")
     api = f"http://127.0.0.1:{port}/api/v2/app/"
