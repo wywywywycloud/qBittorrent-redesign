@@ -11,9 +11,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {platform: macOS, runner: macos-15}
+          - {platform: macOS, runner: macos-latest}
           - {platform: FreeBSD, runner: ubuntu-24.04, guest: freebsd, version: '14.4'}
-          - {platform: Haiku, runner: ubuntu-24.04, guest: haiku, version: 'r1beta5'}
+          - {platform: Haiku, runner: ubuntu-24.04, guest: haiku, version: 'r1beta6'}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     steps:
@@ -23,12 +23,12 @@ jobs:
       - name: Fetch the two exact revisions
         run: |
           curl -fLsS --retry 3 -o icons.tar.gz https://codeload.github.com/wywywywycloud/qBittorrent-redesign/tar.gz/bf097f5bf93555c37deb36d6aab0e800dcaf7903
-          curl -fLsS --retry 3 -o desktop.tar.gz https://codeload.github.com/wywywywycloud/qBittorrent-redesign/tar.gz/0b8a29e418b6deca33f4b92a397b5b595f1cb4d7
+          curl -fLsS --retry 3 -o desktop.tar.gz https://codeload.github.com/wywywywycloud/qBittorrent-redesign/tar.gz/7003546334ab637c446df9b932c321b0031e043b
       - name: Build and start both applications on macOS
         if: matrix.platform == 'macOS'
         run: |
           brew install libtorrent-rasterbar qtbase qtsvg qttools qttranslations ninja
-          export CMAKE_PREFIX_PATH="$(brew --prefix);$(brew --prefix qtbase);$(brew --prefix qttools);$(brew --prefix qtsvg)"
+          export CMAKE_PREFIX_PATH="$(brew --prefix):$(brew --prefix qtbase):$(brew --prefix qttools):$(brew --prefix qtsvg)"
           export QT_PLUGIN_PATH="$("$(brew --prefix qtbase)/bin/qtpaths" --query QT_INSTALL_PLUGINS)"
           sh build.sh
       - name: Build and start both applications in the guest
