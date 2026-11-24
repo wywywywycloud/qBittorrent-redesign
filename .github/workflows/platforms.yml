@@ -1,0 +1,56 @@
+name: Desktop redesign platform checks
+on:
+  push:
+    branches: [checks/redesign-platforms]
+permissions:
+  contents: read
+jobs:
+  native:
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {platform: macOS, runner: macos-15}
+          - {platform: FreeBSD, runner: ubuntu-24.04, guest: freebsd, version: '14.4'}
+          - {platform: Haiku, runner: ubuntu-24.04, guest: haiku, version: 'r1beta5'}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Fetch the two exact revisions
+        run: |
+          curl -fLsS --retry 3 -o icons.tar.gz https://codeload.github.com/wywywywycloud/qBittorrent-redesign/tar.gz/bf097f5bf93555c37deb36d6aab0e800dcaf7903
+          curl -fLsS --retry 3 -o desktop.tar.gz https://codeload.github.com/wywywywycloud/qBittorrent-redesign/tar.gz/0b8a29e418b6deca33f4b92a397b5b595f1cb4d7
+      - name: Build and start both applications on macOS
+        if: matrix.platform == 'macOS'
+        run: |
+          brew install libtorrent-rasterbar qtbase qtsvg qttools qttranslations ninja
+          export CMAKE_PREFIX_PATH="$(brew --prefix);$(brew --prefix qtbase);$(brew --prefix qttools);$(brew --prefix qtsvg)"
+          export QT_PLUGIN_PATH="$("$(brew --prefix qtbase)/bin/qtpaths" --query QT_INSTALL_PLUGINS)"
+          sh build.sh
+      - name: Build and start both applications in the guest
+        if: matrix.platform != 'macOS'
+        uses: cross-platform-actions/action@30cde56b87a128507bebea9531205087890ee360
+        with:
+          operating_system: ${{ matrix.guest }}
+          version: ${{ matrix.version }}
+          cpu_count: 3
+          memory: 8G
+          run: |
+            set -eu
+            case "$(uname -s)" in
+              FreeBSD)
+                sudo pkg install -y cmake ninja rsync python3 qt6-base qt6-tools qt6-svg boost-libs libtorrent-rasterbar2
+                export CXXFLAGS=-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED
+                ;;
+              Haiku)
+                pkgman install -y cmd:cmake cmd:ninja cmd:rsync cmd:python3 boost1.91_devel devel:libGL devel:libQt6Core devel:libQt6Network devel:libQt6Sql devel:libQt6Svg devel:libQt6UiTools devel:libQt6Xml devel:libssl devel:libtorrent_rasterbar devel:libz
+                ;;
+            esac
+            work=$(mktemp -d)
+            cp build.sh smoke.py icons.tar.gz desktop.tar.gz "$work/"
+            cd "$work"
+            JOBS=3 sh build.sh
