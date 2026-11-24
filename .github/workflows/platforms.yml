@@ -1,7 +1,7 @@
 name: Desktop redesign platform checks
 on:
   push:
-    branches: [checks/redesign-platforms]
+    branches: [checks/redesign-haiku]
 permissions:
   contents: read
 jobs:
@@ -11,8 +11,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {platform: macOS, runner: macos-latest}
-          - {platform: FreeBSD, runner: ubuntu-24.04, guest: freebsd, version: '14.4'}
           - {platform: Haiku, runner: ubuntu-24.04, guest: haiku, version: 'r1beta6'}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -24,6 +22,8 @@ jobs:
         run: |
           curl -fLsS --retry 3 -o icons.tar.gz https://codeload.github.com/wywywywycloud/qBittorrent-redesign/tar.gz/bf097f5bf93555c37deb36d6aab0e800dcaf7903
           curl -fLsS --retry 3 -o desktop.tar.gz https://codeload.github.com/wywywywycloud/qBittorrent-redesign/tar.gz/9f0169c8eb5a88059f284da0ca7126b8af05683c
+          curl -fLsS --retry 3 https://raw.githubusercontent.com/haikuports/haikuports/ca9d89db6a317b50f7137f78793ba899231b6eea/net-p2p/qbittorrent/patches/qbittorrent-5.2.3.patchset -o haiku.patchset
+          awk '/^From [[:xdigit:]]+ Mon Sep 17/ && ++n > 1 {exit} {print}' haiku.patchset > haiku.patch
       - name: Build and start both applications on macOS
         if: matrix.platform == 'macOS'
         run: |
@@ -51,6 +51,6 @@ jobs:
                 ;;
             esac
             work=$(mktemp -d)
-            cp build.sh smoke.py icons.tar.gz desktop.tar.gz "$work/"
+            cp build.sh smoke.py haiku.patch icons.tar.gz desktop.tar.gz "$work/"
             cd "$work"
             JOBS=3 sh build.sh

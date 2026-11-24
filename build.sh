@@ -4,6 +4,11 @@ jobs=${JOBS:-4}
 for variant in icons desktop; do
     mkdir -p "$variant" source
     tar -xzf "$variant.tar.gz" --strip-components=1 -C "$variant"
+    if [ "$(uname -s)" = Haiku ]; then
+        patch -d "$variant" -p1 < haiku.patch
+        sed -i 's/find_package(OpenSSL .* REQUIRED)/find_package(OpenSSL 3.0.2 MODULE REQUIRED)/' "$variant/cmake/Modules/CheckPackages.cmake"
+        export LDFLAGS="-lnetwork"
+    fi
     rsync -rc --delete "$variant/" source/
     cmake -S source -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
         '-DCMAKE_CXX_FLAGS_RELEASE=-O1 -DNDEBUG' -DGUI=ON -DWEBUI=ON \
